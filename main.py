@@ -2,7 +2,8 @@ from fastmcp import FastMCP
 import os
 import sqlite3
 
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "expenses.db")
+_default_db = os.path.join(os.path.dirname(os.path.abspath(__file__)), "expenses.db")
+DB_PATH = os.environ.get("EXPENSE_DB_PATH", _default_db)
 
 mcp = FastMCP("ExpenseTracker")
 
@@ -33,6 +34,19 @@ def init_db():
 
 init_db()
 init_balance_db()
+
+# Verify the database is writable at startup so the error is obvious immediately.
+try:
+    with sqlite3.connect(DB_PATH) as _c:
+        _c.execute("CREATE TABLE IF NOT EXISTS _write_check (id INTEGER PRIMARY KEY)")
+        _c.execute("INSERT INTO _write_check DEFAULT VALUES")
+        _c.execute("DELETE FROM _write_check")
+except sqlite3.OperationalError as e:
+    raise RuntimeError(
+        f"Database at {DB_PATH!r} is not writable: {e}\n"
+        "Fix: run  chmod 664 <path>/expenses.db  on the server, or set the "
+        "EXPENSE_DB_PATH env variable to a writable path."
+    ) from e
 
 @mcp.tool()
 def add_expense(date, amount, category, subcategory="", note=""):
