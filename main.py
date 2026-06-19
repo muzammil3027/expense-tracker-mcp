@@ -2,11 +2,11 @@ from fastmcp import FastMCP
 import os
 import sqlite3
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "expenses.db")
+DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "expenses.db")
 
 mcp = FastMCP("ExpenseTracker")
 
-def balance():
+def init_balance_db():
     '''Create the LOAD_BALANCE table for adding balance entries.'''
     with sqlite3.connect(DB_PATH) as c:
         c.execute("""
@@ -32,7 +32,7 @@ def init_db():
         """)
 
 init_db()
-balance()
+init_balance_db()
 
 @mcp.tool()
 def add_expense(date, amount, category, subcategory="", note=""):
@@ -147,4 +147,4 @@ def delete_balance(id):
 
 
 if __name__ == "__main__":
-    mcp.run()
+    mcp.run(transport="sse", host="0.0.0.0", port=8000)
